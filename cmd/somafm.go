@@ -1,39 +1,50 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
 	"log"
 	"os"
+	"time"
 
-	"github.com/nicarl/somafm/audio"
+	"github.com/faiface/beep"
+	"github.com/faiface/beep/speaker"
 	"github.com/nicarl/somafm/prompt"
 	"github.com/nicarl/somafm/radioChannels"
+	"github.com/nicarl/somafm/state"
+
+	"github.com/gdamore/tcell/v2"
 )
 
 func main() {
-	//playMusic()
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	text := scanner.Text()
-	fmt.Println(text)
-}
+	sampleRate := beep.SampleRate(44100)
+	speaker.Init(sampleRate, sampleRate.N(time.Second/10))
 
-func playMusic() {
 	radioCh, err := radioChannels.GetChannels()
 	if err != nil {
 		log.Fatal(err)
 	}
-	selectedCh, err := prompt.SelectChannel(radioCh)
+
+	s, err := tcell.NewScreen()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%+v", err)
 	}
-	streamUrl, err := radioChannels.GetStreamUrl(selectedCh)
-	if err != nil {
-		log.Fatal(streamUrl)
+	if err := s.Init(); err != nil {
+		log.Fatalf("%+v", err)
 	}
-	err = audio.PlayRemoteFile(streamUrl)
-	if err != nil {
-		log.Fatal(err)
+
+	selectedCh := 0
+	playerState := state.PlayerState{
+		Channels:        radioCh,
+		SelectedCh:      selectedCh,
+		SelectedControl: state.PLAY_BUTTON,
+		IsPlaying:       false,
+	}
+	s.Clear()
+	quit := func() {
+		s.Fini()
+		os.Exit(0)
+	}
+	for {
+		prompt.SelectChannel(s, &playerState, quit)
+		prompt.PlayChannel(s, &playerState, quit)
 	}
 }

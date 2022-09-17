@@ -21,6 +21,15 @@ type RadioCh struct {
 	Playlists   []playlist
 }
 
+type RadioChWithURL struct {
+	Id          string
+	Title       string
+	Description string
+	Dj          string
+	Genre       string
+	StreamURL   string
+}
+
 type playlist struct {
 	Url     string `json:"url"`
 	Format  string `json:"format"`
@@ -68,7 +77,7 @@ func GetStreamUrl(radioCh RadioCh) (string, error) {
 	return streamUrl, fmt.Errorf("Could not find stream url")
 }
 
-func GetChannels() ([]RadioCh, error) {
+func GetChannels() ([]RadioChWithURL, error) {
 	resp, err := http.Get("https://somafm.com/channels.json")
 	if err != nil {
 		fmt.Println(err)
@@ -84,5 +93,30 @@ func GetChannels() ([]RadioCh, error) {
 		return nil, err
 	}
 
-	return data.Channels, nil
+	type empty struct{}
+
+	radioChannels := make([]RadioChWithURL, len(data.Channels))
+	sem := make(chan empty, len(data.Channels))
+	for i, ch := range data.Channels {
+		go func(i int, ch RadioCh) {
+			streamUrl, _ := GetStreamUrl(ch)
+			// if err != nil {
+			// 	return nil, err
+			// }
+			radioChannels[i] = RadioChWithURL{
+				Id:          ch.Id,
+				Title:       ch.Title,
+				Description: ch.Description,
+				Dj:          ch.Dj,
+				Genre:       ch.Genre,
+				StreamURL:   streamUrl,
+			}
+			sem <- empty{}
+		}(i, ch)
+	}
+	for i := 0; i < len(data.Channels); i++ {
+		<-sem
+	}
+
+	return radioChannels, nil
 }
