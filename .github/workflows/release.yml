@@ -34,7 +34,7 @@ jobs:
         run: sudo apt-get install libasound2-dev
         if: matrix.os == 'ubuntu-latest'
       - name: Build binary
-        run: ${{ matrix.env }} go build ./cmd/somafm.go -o ${{ matrix.file }}
+        run: ${{ matrix.env }} go build -o ${{ matrix.file }} ./cmd/somafm.go 
       - name: Upload release asset
         uses: softprops/action-gh-release@v1
         with:
