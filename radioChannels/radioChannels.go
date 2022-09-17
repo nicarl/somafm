@@ -43,7 +43,7 @@ func findMP3Playlist(radioCh rawRadioChan) (string, error) {
 			break
 		}
 	}
-	if &mp3Playlist == nil {
+	if mp3Playlist == "" {
 		return mp3Playlist, fmt.Errorf("Could not find mp3 playlist for channel")
 	}
 
@@ -63,6 +63,9 @@ func getStreamURL(radioCh rawRadioChan) (string, error) {
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return streamUrl, err
+	}
 	lines := strings.Split(string(body), "\n")
 	for _, line := range lines {
 		if strings.HasPrefix(line, "File") {
