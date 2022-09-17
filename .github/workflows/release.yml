@@ -18,12 +18,9 @@ jobs:
           - os: macos-latest
             file: somafm-${{ github.ref_name }}-darwin-amd64
             env: GOOS=darwin GOARCH=amd64
-          - os: macos-latest
-            file: somafm-${{ github.ref_name }}-darwin-arm64
-            env: GOOS=darwin GOARCH=arm64
           - os: windows-latest
             file: somafm-${{ github.ref_name }}-windows-amd64.exe
-            env: set GOOS=windows set GOARCH=amd64
+            env: ''
     
     steps:
       - uses: actions/checkout@v3
