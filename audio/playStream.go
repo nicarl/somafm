@@ -1,7 +1,6 @@
 package audio
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/faiface/beep"
@@ -10,23 +9,19 @@ import (
 	"github.com/faiface/beep/speaker"
 )
 
-func PlayMusic(streamURL string, done chan bool, setVolume <-chan float32) {
-	err := playRemoteFile(streamURL, done, setVolume)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func playRemoteFile(streamUrl string, done chan bool, setVolume <-chan float32) error {
+// TODO error handling! this is gorountine
+func PlayMusic(streamUrl string, done <-chan bool, setVolume <-chan float32, errs chan<- error) {
 	resp, err := http.Get(streamUrl)
 
 	if err != nil {
-		return err
+		errs <- err
+		return
 	}
 
 	streamer, _, err := mp3.Decode(resp.Body)
 	if err != nil {
-		return err
+		errs <- err
+		return
 	}
 	defer streamer.Close()
 
@@ -42,12 +37,11 @@ func playRemoteFile(streamUrl string, done chan bool, setVolume <-chan float32) 
 	for {
 		select {
 		case <-done:
-			return nil
+			return
 		case volumeChange := <-setVolume:
 			speaker.Lock()
 			volume.Volume += float64(volumeChange)
 			speaker.Unlock()
 		}
 	}
-
 }

@@ -3,7 +3,7 @@ package state
 import "github.com/nicarl/somafm/radioChannels"
 
 type PlayerState struct {
-	Channels        []radioChannels.RadioChWithURL
+	Channels        []radioChannels.RadioChan
 	SelectedCh      int
 	SelectedControl Control
 	IsPlaying       bool
@@ -39,4 +39,13 @@ func (state *PlayerState) PauseMusic() {
 
 func (state *PlayerState) PlayMusic() {
 	state.IsPlaying = true
+}
+
+func InitState(channels []radioChannels.RadioChan) *PlayerState {
+	return &PlayerState{
+		Channels:        channels,
+		SelectedCh:      0,
+		SelectedControl: PLAY_BUTTON,
+		IsPlaying:       false,
+	}
 }

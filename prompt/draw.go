@@ -52,7 +52,6 @@ func drawPlayer(s tcell.Screen, playerState state.PlayerState) {
 
 	_, height := s.Size()
 
-	// drawText(s, width/2, height/2, width/2, height/2, defStyle, "Play ▶")
 	var playButtonText string
 	if playerState.IsPlaying {
 		playButtonText = "Pause ⏸"

@@ -9,10 +9,10 @@ import (
 )
 
 type somafmResponse struct {
-	Channels []RadioCh
+	Channels []rawRadioChan
 }
 
-type RadioCh struct {
+type rawRadioChan struct {
 	Id          string `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
@@ -20,8 +20,13 @@ type RadioCh struct {
 	Genre       string `json:"genre"`
 	Playlists   []playlist
 }
+type playlist struct {
+	Url     string `json:"url"`
+	Format  string `json:"format"`
+	Quality string `json:"quality"`
+}
 
-type RadioChWithURL struct {
+type RadioChan struct {
 	Id          string
 	Title       string
 	Description string
@@ -30,13 +35,7 @@ type RadioChWithURL struct {
 	StreamURL   string
 }
 
-type playlist struct {
-	Url     string `json:"url"`
-	Format  string `json:"format"`
-	Quality string `json:"quality"`
-}
-
-func findMP3Playlist(radioCh RadioCh) (string, error) {
+func findMP3Playlist(radioCh rawRadioChan) (string, error) {
 	var mp3Playlist string
 	for i := range radioCh.Playlists {
 		if radioCh.Playlists[i].Format == "mp3" {
@@ -51,7 +50,7 @@ func findMP3Playlist(radioCh RadioCh) (string, error) {
 	return mp3Playlist, nil
 }
 
-func GetStreamUrl(radioCh RadioCh) (string, error) {
+func getStreamURL(radioCh rawRadioChan) (string, error) {
 	var streamUrl string
 	playlist, err := findMP3Playlist(radioCh)
 	if err != nil {
@@ -77,10 +76,47 @@ func GetStreamUrl(radioCh RadioCh) (string, error) {
 	return streamUrl, fmt.Errorf("Could not find stream url")
 }
 
-func GetChannels() ([]RadioChWithURL, error) {
+func convertRawChannels(channels []rawRadioChan) ([]RadioChan, error) {
+	type empty struct{}
+
+	n := len(channels)
+
+	radioChannels := make([]RadioChan, n)
+	sem := make(chan empty, n)
+	errs := make(chan error, n)
+
+	for i, ch := range channels {
+		go func(i int, ch rawRadioChan) {
+			streamUrl, err := getStreamURL(ch)
+			if err != nil {
+				errs <- err
+				return
+			}
+			radioChannels[i] = RadioChan{
+				Id:          ch.Id,
+				Title:       ch.Title,
+				Description: ch.Description,
+				Dj:          ch.Dj,
+				Genre:       ch.Genre,
+				StreamURL:   streamUrl,
+			}
+			sem <- empty{}
+		}(i, ch)
+	}
+	for i := 0; i < n; i++ {
+		<-sem
+	}
+	select {
+	case err := <-errs:
+		return nil, err
+	default:
+		return radioChannels, nil
+	}
+}
+
+func getRawChannels() ([]rawRadioChan, error) {
 	resp, err := http.Get("https://somafm.com/channels.json")
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -92,31 +128,17 @@ func GetChannels() ([]RadioChWithURL, error) {
 	if err = d.Decode(&data); err != nil {
 		return nil, err
 	}
-
-	type empty struct{}
-
-	radioChannels := make([]RadioChWithURL, len(data.Channels))
-	sem := make(chan empty, len(data.Channels))
-	for i, ch := range data.Channels {
-		go func(i int, ch RadioCh) {
-			streamUrl, _ := GetStreamUrl(ch)
-			// if err != nil {
-			// 	return nil, err
-			// }
-			radioChannels[i] = RadioChWithURL{
-				Id:          ch.Id,
-				Title:       ch.Title,
-				Description: ch.Description,
-				Dj:          ch.Dj,
-				Genre:       ch.Genre,
-				StreamURL:   streamUrl,
-			}
-			sem <- empty{}
-		}(i, ch)
+	if len(data.Channels) == 0 {
+		return nil, fmt.Errorf("Did not find channels")
 	}
-	for i := 0; i < len(data.Channels); i++ {
-		<-sem
+	return data.Channels, nil
+}
+
+func GetChannels() ([]RadioChan, error) {
+	rawChannels, err := getRawChannels()
+	if err != nil {
+		return nil, err
 	}
 
-	return radioChannels, nil
+	return convertRawChannels(rawChannels)
 }
