@@ -1,24 +1,106 @@
 package prompt
 
 import (
-	"os"
+	"fmt"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/nicarl/somafm/audio"
+	"github.com/nicarl/somafm/state"
+	"github.com/rivo/tview"
 )
 
-func InitScreen() (tcell.Screen, func(), error) {
-	s, err := tcell.NewScreen()
-	if err != nil {
-		return nil, nil, err
-	}
-	if err := s.Init(); err != nil {
-		return nil, nil, err
-	}
+func getChannelList(
+	appState *state.PlayerState,
+	channelDetails *tview.TextView,
+	player *tview.List,
+	done chan bool,
+	setVolume <-chan float32,
+	errs chan<- error,
+) *tview.List {
+	channelList := tview.NewList()
+	channelList.SetBorder(true).SetTitle("Channels")
 
-	s.Clear()
-	quit := func() {
-		s.Fini()
-		os.Exit(0)
+	for _, radioCh := range appState.Channels {
+		channelList.AddItem(radioCh.Title, "", 0, func() {
+			if appState.IsPlaying {
+				appState.PauseMusic()
+				done <- true
+			}
+			appState.PlayMusic()
+			go audio.PlayMusic(appState.Channels[appState.SelectedCh].StreamURL, done, setVolume, errs)
+			player.SetItemText(1, "Pause", "")
+		})
 	}
-	return s, quit, nil
+	channelList.SetChangedFunc(func(i int, _ string, _ string, _ rune) {
+		appState.SelectCh(i)
+		channelDetails.Clear()
+		fmt.Fprint(channelDetails, appState.Channels[appState.SelectedCh].Description)
+	})
+	return channelList
+}
+
+func getChannelDetails(state *state.PlayerState) *tview.TextView {
+	channelDetails := tview.NewTextView()
+	channelDetails.SetBorder(true).SetTitle("Details")
+	fmt.Fprint(channelDetails, state.Channels[state.SelectedCh].Description)
+	return channelDetails
+}
+
+func getPlayer(
+	appState *state.PlayerState,
+	done chan bool,
+	setVolume chan float32,
+	errs chan<- error,
+) *tview.List {
+	player := tview.NewList()
+	player.SetBorder(true)
+	player.AddItem("Volume +", "", 0, func() {
+		setVolume <- 0.5
+	})
+	player.AddItem("Play", "", 0, func() {
+		if appState.IsPlaying {
+			appState.PauseMusic()
+			done <- true
+			player.SetItemText(1, "Play", "")
+		} else {
+			appState.PlayMusic()
+			go audio.PlayMusic(appState.Channels[appState.SelectedCh].StreamURL, done, setVolume, errs)
+			player.SetItemText(1, "Pause", "")
+		}
+	})
+	player.AddItem("Volume -", "", 0, func() {
+		setVolume <- -0.5
+	})
+
+	player.SetCurrentItem(1)
+	return player
+}
+
+func InitApp(state *state.PlayerState) {
+	app := tview.NewApplication()
+
+	done := make(chan bool)
+	setVolume := make(chan float32, 10)
+	errs := make(chan error, 1)
+
+	channelDetails := getChannelDetails(state)
+	player := getPlayer(state, done, setVolume, errs)
+	channelList := getChannelList(state, channelDetails, player, done, setVolume, errs)
+
+	channelList.SetSelectedFunc(func(_ int, _ string, _ string, _ rune) {
+		app.SetFocus(player)
+	})
+	player.SetDoneFunc(func() {
+		app.SetFocus(channelList)
+	})
+
+	flex := tview.NewFlex().
+		AddItem(channelList, 0, 1, false).
+		AddItem(player, 0, 1, false).
+		AddItem(channelDetails, 0, 1, false)
+	flexWithHeader := tview.NewFrame(flex).SetBorders(2, 2, 2, 2, 4, 4).AddText("SomaFM", true, tview.AlignCenter, tcell.ColorDefault)
+
+	if err := app.SetRoot(flexWithHeader, true).SetFocus(channelList).Run(); err != nil {
+		panic(err)
+	}
 }
