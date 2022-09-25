@@ -23,11 +23,16 @@ func (appState *AppState) GetSelectedCh() radioChannels.RadioChan {
 }
 
 func (appState *AppState) PauseMusic() {
-	appState.IsPlaying = false
-	appState.done <- true
+	if appState.IsPlaying {
+		appState.IsPlaying = false
+		appState.done <- true
+	}
 }
 
 func (appState *AppState) PlayMusic() {
+	if appState.IsPlaying {
+		appState.PauseMusic()
+	}
 	appState.IsPlaying = true
 	go audio.PlayMusic(appState.GetSelectedCh().StreamURL, appState.done, appState.setVolume, appState.errs)
 }
