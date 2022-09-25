@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/nicarl/somafm/audio"
 	"github.com/nicarl/somafm/state"
 	"github.com/rivo/tview"
 )
@@ -13,9 +12,6 @@ func getChannelList(
 	appState *state.AppState,
 	channelDetails *tview.TextView,
 	player *tview.List,
-	done chan bool,
-	setVolume <-chan float32,
-	errs chan<- error,
 ) *tview.List {
 	channelList := tview.NewList()
 	channelList.SetBorder(true).SetTitle("Channels")
@@ -24,10 +20,8 @@ func getChannelList(
 		channelList.AddItem(radioCh.Title, "", 0, func() {
 			if appState.IsPlaying {
 				appState.PauseMusic()
-				done <- true
 			}
 			appState.PlayMusic()
-			go audio.PlayMusic(appState.GetSelectedCh().StreamURL, done, setVolume, errs)
 			player.SetItemText(1, "Pause", "")
 		})
 	}
@@ -48,28 +42,23 @@ func getChannelDetails(appState *state.AppState) *tview.TextView {
 
 func getPlayer(
 	appState *state.AppState,
-	done chan bool,
-	setVolume chan float32,
-	errs chan<- error,
 ) *tview.List {
 	player := tview.NewList()
 	player.SetBorder(true)
 	player.AddItem("Volume +", "", 0, func() {
-		setVolume <- 0.5
+		appState.IncreaseVolume()
 	})
 	player.AddItem("Play", "", 0, func() {
 		if appState.IsPlaying {
 			appState.PauseMusic()
-			done <- true
 			player.SetItemText(1, "Play", "")
 		} else {
 			appState.PlayMusic()
-			go audio.PlayMusic(appState.GetSelectedCh().StreamURL, done, setVolume, errs)
 			player.SetItemText(1, "Pause", "")
 		}
 	})
 	player.AddItem("Volume -", "", 0, func() {
-		setVolume <- -0.5
+		appState.DecreaseVolume()
 	})
 
 	player.SetCurrentItem(1)
@@ -79,13 +68,9 @@ func getPlayer(
 func InitApp(appState *state.AppState) {
 	app := tview.NewApplication()
 
-	done := make(chan bool)
-	setVolume := make(chan float32, 10)
-	errs := make(chan error, 1)
-
 	channelDetails := getChannelDetails(appState)
-	player := getPlayer(appState, done, setVolume, errs)
-	channelList := getChannelList(appState, channelDetails, player, done, setVolume, errs)
+	player := getPlayer(appState)
+	channelList := getChannelList(appState, channelDetails, player)
 
 	channelList.SetSelectedFunc(func(_ int, _ string, _ string, _ rune) {
 		app.SetFocus(player)
