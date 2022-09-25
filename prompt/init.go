@@ -10,7 +10,7 @@ import (
 )
 
 func getChannelList(
-	appState *state.PlayerState,
+	appState *state.AppState,
 	channelDetails *tview.TextView,
 	player *tview.List,
 	done chan bool,
@@ -27,27 +27,27 @@ func getChannelList(
 				done <- true
 			}
 			appState.PlayMusic()
-			go audio.PlayMusic(appState.Channels[appState.SelectedCh].StreamURL, done, setVolume, errs)
+			go audio.PlayMusic(appState.GetSelectedCh().StreamURL, done, setVolume, errs)
 			player.SetItemText(1, "Pause", "")
 		})
 	}
 	channelList.SetChangedFunc(func(i int, _ string, _ string, _ rune) {
 		appState.SelectCh(i)
 		channelDetails.Clear()
-		fmt.Fprint(channelDetails, appState.Channels[appState.SelectedCh].Description)
+		fmt.Fprint(channelDetails, appState.GetSelectedCh().Description)
 	})
 	return channelList
 }
 
-func getChannelDetails(state *state.PlayerState) *tview.TextView {
+func getChannelDetails(appState *state.AppState) *tview.TextView {
 	channelDetails := tview.NewTextView()
 	channelDetails.SetBorder(true).SetTitle("Details")
-	fmt.Fprint(channelDetails, state.Channels[state.SelectedCh].Description)
+	fmt.Fprint(channelDetails, appState.GetSelectedCh().Description)
 	return channelDetails
 }
 
 func getPlayer(
-	appState *state.PlayerState,
+	appState *state.AppState,
 	done chan bool,
 	setVolume chan float32,
 	errs chan<- error,
@@ -64,7 +64,7 @@ func getPlayer(
 			player.SetItemText(1, "Play", "")
 		} else {
 			appState.PlayMusic()
-			go audio.PlayMusic(appState.Channels[appState.SelectedCh].StreamURL, done, setVolume, errs)
+			go audio.PlayMusic(appState.GetSelectedCh().StreamURL, done, setVolume, errs)
 			player.SetItemText(1, "Pause", "")
 		}
 	})
@@ -76,16 +76,16 @@ func getPlayer(
 	return player
 }
 
-func InitApp(state *state.PlayerState) {
+func InitApp(appState *state.AppState) {
 	app := tview.NewApplication()
 
 	done := make(chan bool)
 	setVolume := make(chan float32, 10)
 	errs := make(chan error, 1)
 
-	channelDetails := getChannelDetails(state)
-	player := getPlayer(state, done, setVolume, errs)
-	channelList := getChannelList(state, channelDetails, player, done, setVolume, errs)
+	channelDetails := getChannelDetails(appState)
+	player := getPlayer(appState, done, setVolume, errs)
+	channelList := getChannelList(appState, channelDetails, player, done, setVolume, errs)
 
 	channelList.SetSelectedFunc(func(_ int, _ string, _ string, _ rune) {
 		app.SetFocus(player)
