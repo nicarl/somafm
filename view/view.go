@@ -17,6 +17,7 @@ func getChannelList(
 	channelList := tview.NewList()
 	channelList.SetBorder(true).SetTitle("Channels")
 	channelList.ShowSecondaryText(false)
+	channelList.SetBorderPadding(1, 1, 1, 1)
 
 	for _, radioCh := range appState.Channels {
 		channelList.AddItem(radioCh.Title, "", 0, func() {
@@ -38,6 +39,7 @@ func getChannelList(
 func getChannelDetails(appState *state.AppState) *tview.TextView {
 	channelDetails := tview.NewTextView()
 	channelDetails.SetBorder(true).SetTitle("Details")
+	channelDetails.SetBorderPadding(1, 0, 0, 0)
 	fmt.Fprint(channelDetails, appState.GetSelectedCh().GetDetails())
 	return channelDetails
 }
@@ -48,6 +50,7 @@ func getPlayer(
 	player := tview.NewList()
 	player.SetBorder(true)
 	player.ShowSecondaryText(false)
+	player.SetBorderPadding(1, 1, 1, 1)
 
 	player.AddItem("Volume +", "", 0, func() {
 		appState.IncreaseVolume()
