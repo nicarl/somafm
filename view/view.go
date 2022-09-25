@@ -1,11 +1,12 @@
-package prompt
+package view
 
 import (
 	"fmt"
 
-	"github.com/gdamore/tcell/v2"
 	"github.com/nicarl/somafm/state"
 	"github.com/rivo/tview"
+
+	tcell "github.com/gdamore/tcell/v2"
 )
 
 func getChannelList(

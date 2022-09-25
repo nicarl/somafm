@@ -4,9 +4,9 @@ import (
 	"log"
 
 	"github.com/nicarl/somafm/audio"
-	"github.com/nicarl/somafm/prompt"
 	"github.com/nicarl/somafm/radioChannels"
 	"github.com/nicarl/somafm/state"
+	"github.com/nicarl/somafm/view"
 )
 
 func main() {
@@ -20,5 +20,5 @@ func main() {
 	}
 	playerState := state.InitState(radioCh)
 
-	prompt.InitApp(playerState)
+	view.InitApp(playerState)
 }
