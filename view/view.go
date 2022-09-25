@@ -30,7 +30,7 @@ func getChannelList(
 	channelList.SetChangedFunc(func(i int, _ string, _ string, _ rune) {
 		appState.SelectCh(i)
 		channelDetails.Clear()
-		fmt.Fprint(channelDetails, appState.GetSelectedCh().Description)
+		fmt.Fprint(channelDetails, appState.GetSelectedCh().GetDetails())
 	})
 	return channelList
 }
@@ -38,7 +38,7 @@ func getChannelList(
 func getChannelDetails(appState *state.AppState) *tview.TextView {
 	channelDetails := tview.NewTextView()
 	channelDetails.SetBorder(true).SetTitle("Details")
-	fmt.Fprint(channelDetails, appState.GetSelectedCh().Description)
+	fmt.Fprint(channelDetails, appState.GetSelectedCh().GetDetails())
 	return channelDetails
 }
 
