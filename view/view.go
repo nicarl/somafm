@@ -16,6 +16,7 @@ func getChannelList(
 ) *tview.List {
 	channelList := tview.NewList()
 	channelList.SetBorder(true).SetTitle("Channels")
+	channelList.ShowSecondaryText(false)
 
 	for _, radioCh := range appState.Channels {
 		channelList.AddItem(radioCh.Title, "", 0, func() {
@@ -46,6 +47,8 @@ func getPlayer(
 ) *tview.List {
 	player := tview.NewList()
 	player.SetBorder(true)
+	player.ShowSecondaryText(false)
+
 	player.AddItem("Volume +", "", 0, func() {
 		appState.IncreaseVolume()
 	})
