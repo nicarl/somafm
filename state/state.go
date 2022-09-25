@@ -1,51 +1,52 @@
 package state
 
-import "github.com/nicarl/somafm/radioChannels"
-
-type PlayerState struct {
-	Channels        []radioChannels.RadioChan
-	SelectedCh      int
-	SelectedControl Control
-	IsPlaying       bool
-}
-
-type Control string
-
-const (
-	LOUDER      Control = "LOUDER"
-	QUIETER     Control = "QUIETER"
-	PLAY_BUTTON Control = "PLAY_BUTTON"
+import (
+	"github.com/nicarl/somafm/audio"
+	"github.com/nicarl/somafm/radioChannels"
 )
 
-func (state *PlayerState) SelectNextCh() {
-	if state.SelectedCh < len(state.Channels)-1 {
-		state.SelectedCh++
-	}
+type AppState struct {
+	Channels   []radioChannels.RadioChan
+	SelectedCh int
+	IsPlaying  bool
+	done       chan bool
+	setVolume  chan float32
+	errs       chan error
 }
 
-func (state *PlayerState) SelectPrevCh() {
-	if state.SelectedCh > 0 {
-		state.SelectedCh--
-	}
+func (appState *AppState) SelectCh(i int) {
+	appState.SelectedCh = i
 }
 
-func (state *PlayerState) SelectControl(control Control) {
-	state.SelectedControl = control
+func (appState *AppState) GetSelectedCh() radioChannels.RadioChan {
+	return appState.Channels[appState.SelectedCh]
 }
 
-func (state *PlayerState) PauseMusic() {
-	state.IsPlaying = false
+func (appState *AppState) PauseMusic() {
+	appState.IsPlaying = false
+	appState.done <- true
 }
 
-func (state *PlayerState) PlayMusic() {
-	state.IsPlaying = true
+func (appState *AppState) PlayMusic() {
+	appState.IsPlaying = true
+	go audio.PlayMusic(appState.GetSelectedCh().StreamURL, appState.done, appState.setVolume, appState.errs)
 }
 
-func InitState(channels []radioChannels.RadioChan) *PlayerState {
-	return &PlayerState{
-		Channels:        channels,
-		SelectedCh:      0,
-		SelectedControl: PLAY_BUTTON,
-		IsPlaying:       false,
+func (appState *AppState) IncreaseVolume() {
+	appState.setVolume <- 0.5
+}
+
+func (appState *AppState) DecreaseVolume() {
+	appState.setVolume <- -0.5
+}
+
+func InitState(channels []radioChannels.RadioChan) *AppState {
+	return &AppState{
+		Channels:   channels,
+		SelectedCh: 0,
+		IsPlaying:  false,
+		done:       make(chan bool),
+		setVolume:  make(chan float32, 10),
+		errs:       make(chan error, 1),
 	}
 }

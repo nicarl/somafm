@@ -18,6 +18,7 @@ type rawRadioChan struct {
 	Description string `json:"description"`
 	Dj          string `json:"dj"`
 	Genre       string `json:"genre"`
+	LastPlaying string `json:"lastPlaying"`
 	Playlists   []playlist
 }
 type playlist struct {
@@ -35,6 +36,13 @@ type RadioChan struct {
 	StreamURL   string
 }
 
+func (radioChan RadioChan) GetDetails() string {
+	if radioChan.Dj != "" {
+		return fmt.Sprintf("%s\n\nDJ: %s\nGenre: %s", radioChan.Description, radioChan.Dj, radioChan.Genre)
+	}
+	return fmt.Sprintf("%s\n\nGenre: %s", radioChan.Description, radioChan.Genre)
+}
+
 func findMP3Playlist(radioCh rawRadioChan) (string, error) {
 	var mp3Playlist string
 	for i := range radioCh.Playlists {
@@ -44,7 +52,7 @@ func findMP3Playlist(radioCh rawRadioChan) (string, error) {
 		}
 	}
 	if mp3Playlist == "" {
-		return mp3Playlist, fmt.Errorf("Could not find mp3 playlist for channel")
+		return mp3Playlist, fmt.Errorf("could not find mp3 playlist for channel")
 	}
 
 	return mp3Playlist, nil
@@ -76,7 +84,7 @@ func getStreamURL(radioCh rawRadioChan) (string, error) {
 		}
 	}
 
-	return streamUrl, fmt.Errorf("Could not find stream url")
+	return streamUrl, fmt.Errorf("could not find stream url")
 }
 
 func convertRawChannels(channels []rawRadioChan) ([]RadioChan, error) {
@@ -132,7 +140,7 @@ func getRawChannels() ([]rawRadioChan, error) {
 		return nil, err
 	}
 	if len(data.Channels) == 0 {
-		return nil, fmt.Errorf("Did not find channels")
+		return nil, fmt.Errorf("did not find channels")
 	}
 	return data.Channels, nil
 }

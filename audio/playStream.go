@@ -9,7 +9,7 @@ import (
 	"github.com/faiface/beep/speaker"
 )
 
-// TODO error handling! this is gorountine
+// TODO error handling! this is used as goroutine
 func PlayMusic(streamUrl string, done <-chan bool, setVolume <-chan float32, errs chan<- error) {
 	resp, err := http.Get(streamUrl)
 
