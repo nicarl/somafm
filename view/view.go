@@ -21,9 +21,6 @@ func getChannelList(
 
 	for _, radioCh := range appState.Channels {
 		channelList.AddItem(radioCh.Title, "", 0, func() {
-			if appState.IsPlaying {
-				appState.PauseMusic()
-			}
 			appState.PlayMusic()
 			player.SetItemText(1, "Pause", "")
 		})
