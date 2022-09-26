@@ -20,5 +20,8 @@ func main() {
 	}
 	playerState := state.InitState(radioCh)
 
-	view.InitApp(playerState)
+	err = view.InitApp(playerState)
+	if err != nil {
+		log.Fatalf("%+v", err)
+	}
 }

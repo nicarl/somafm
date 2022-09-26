@@ -9,7 +9,6 @@ import (
 	"github.com/faiface/beep/speaker"
 )
 
-// TODO error handling! this is used as goroutine
 func PlayMusic(streamUrl string, done <-chan bool, setVolume <-chan float32, errs chan<- error) {
 	resp, err := http.Get(streamUrl)
 
@@ -23,6 +22,7 @@ func PlayMusic(streamUrl string, done <-chan bool, setVolume <-chan float32, err
 		errs <- err
 		return
 	}
+	close(errs)
 	defer streamer.Close()
 
 	ctrlStreamer := &beep.Ctrl{Streamer: streamer, Paused: false}

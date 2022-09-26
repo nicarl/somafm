@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/nicarl/somafm/state"
 	"github.com/rivo/tview"
@@ -11,6 +12,7 @@ import (
 
 func getChannelList(
 	appState *state.AppState,
+	app *tview.Application,
 	channelDetails *tview.TextView,
 	player *tview.List,
 ) *tview.List {
@@ -21,7 +23,11 @@ func getChannelList(
 
 	for _, radioCh := range appState.Channels {
 		channelList.AddItem(radioCh.Title, "", 0, func() {
-			appState.PlayMusic()
+			err := appState.PlayMusic()
+			if err != nil {
+				app.Stop()
+				log.Fatalf("%+v", err)
+			}
 			player.SetItemText(1, "Pause", "")
 		})
 	}
@@ -43,6 +49,7 @@ func getChannelDetails(appState *state.AppState) *tview.TextView {
 
 func getPlayer(
 	appState *state.AppState,
+	app *tview.Application,
 ) *tview.List {
 	player := tview.NewList()
 	player.SetBorder(true)
@@ -57,7 +64,11 @@ func getPlayer(
 			appState.PauseMusic()
 			player.SetItemText(1, "Play", "")
 		} else {
-			appState.PlayMusic()
+			err := appState.PlayMusic()
+			if err != nil {
+				app.Stop()
+				log.Fatalf("%+v", err)
+			}
 			player.SetItemText(1, "Pause", "")
 		}
 	})
@@ -69,12 +80,12 @@ func getPlayer(
 	return player
 }
 
-func InitApp(appState *state.AppState) {
+func InitApp(appState *state.AppState) error {
 	app := tview.NewApplication()
 
 	channelDetails := getChannelDetails(appState)
-	player := getPlayer(appState)
-	channelList := getChannelList(appState, channelDetails, player)
+	player := getPlayer(appState, app)
+	channelList := getChannelList(appState, app, channelDetails, player)
 
 	channelList.SetSelectedFunc(func(_ int, _ string, _ string, _ rune) {
 		app.SetFocus(player)
@@ -87,9 +98,14 @@ func InitApp(appState *state.AppState) {
 		AddItem(channelList, 0, 1, false).
 		AddItem(player, 0, 1, false).
 		AddItem(channelDetails, 0, 1, false)
-	flexWithHeader := tview.NewFrame(flex).SetBorders(2, 2, 2, 2, 4, 4).AddText("SomaFM", true, tview.AlignCenter, tcell.ColorDefault)
+	flexWithHeader := tview.NewFrame(flex).
+		SetBorders(2, 2, 2, 2, 4, 4).
+		AddText("SomaFM", true, tview.AlignCenter, tcell.ColorWhite)
 
-	if err := app.SetRoot(flexWithHeader, true).SetFocus(channelList).Run(); err != nil {
-		panic(err)
+	app.SetRoot(flexWithHeader, true).SetFocus(channelList)
+
+	if err := app.Run(); err != nil {
+		return err
 	}
+	return nil
 }

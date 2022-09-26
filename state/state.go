@@ -11,7 +11,6 @@ type AppState struct {
 	IsPlaying  bool
 	done       chan bool
 	setVolume  chan float32
-	errs       chan error
 }
 
 func (appState *AppState) SelectCh(i int) {
@@ -29,12 +28,15 @@ func (appState *AppState) PauseMusic() {
 	}
 }
 
-func (appState *AppState) PlayMusic() {
+func (appState *AppState) PlayMusic() error {
 	if appState.IsPlaying {
 		appState.PauseMusic()
 	}
+	errs := make(chan error, 1)
 	appState.IsPlaying = true
-	go audio.PlayMusic(appState.GetSelectedCh().StreamURL, appState.done, appState.setVolume, appState.errs)
+	go audio.PlayMusic(appState.GetSelectedCh().StreamURL, appState.done, appState.setVolume, errs)
+
+	return <-errs
 }
 
 func (appState *AppState) IncreaseVolume() {
@@ -52,6 +54,5 @@ func InitState(channels []radioChannels.RadioChan) *AppState {
 		IsPlaying:  false,
 		done:       make(chan bool),
 		setVolume:  make(chan float32, 10),
-		errs:       make(chan error, 1),
 	}
 }
