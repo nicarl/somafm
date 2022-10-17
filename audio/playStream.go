@@ -4,12 +4,11 @@ import (
 	"net/http"
 
 	"github.com/faiface/beep"
-	"github.com/faiface/beep/effects"
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/speaker"
 )
 
-func PlayMusic(streamUrl string, done <-chan bool, setVolume <-chan float32, errs chan<- error) {
+func PlayMusic(streamUrl string, done <-chan bool, errs chan<- error) {
 	resp, err := http.Get(streamUrl)
 
 	if err != nil {
@@ -26,22 +25,10 @@ func PlayMusic(streamUrl string, done <-chan bool, setVolume <-chan float32, err
 	defer streamer.Close()
 
 	ctrlStreamer := &beep.Ctrl{Streamer: streamer, Paused: false}
-	volume := &effects.Volume{
-		Streamer: ctrlStreamer,
-		Base:     2,
-		Volume:   0,
-		Silent:   false,
-	}
-	speaker.Play(volume)
+	speaker.Play(ctrlStreamer)
 
 	for {
-		select {
-		case <-done:
-			return
-		case volumeChange := <-setVolume:
-			speaker.Lock()
-			volume.Volume += float64(volumeChange)
-			speaker.Unlock()
-		}
+		<-done
+		return
 	}
 }

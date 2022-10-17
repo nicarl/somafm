@@ -14,7 +14,6 @@ func getChannelList(
 	appState *state.AppState,
 	app *tview.Application,
 	channelDetails *tview.TextView,
-	player *tview.List,
 ) *tview.List {
 	channelList := tview.NewList()
 	channelList.SetBorder(true).SetTitle("Channels")
@@ -28,7 +27,6 @@ func getChannelList(
 				app.Stop()
 				log.Fatalf("%+v", err)
 			}
-			player.SetItemText(1, "Pause", "")
 		})
 	}
 	channelList.SetChangedFunc(func(i int, _ string, _ string, _ rune) {
@@ -47,56 +45,14 @@ func getChannelDetails(appState *state.AppState) *tview.TextView {
 	return channelDetails
 }
 
-func getPlayer(
-	appState *state.AppState,
-	app *tview.Application,
-) *tview.List {
-	player := tview.NewList()
-	player.SetBorder(true)
-	player.ShowSecondaryText(false)
-	player.SetBorderPadding(1, 1, 1, 1)
-
-	player.AddItem("Volume +", "", 0, func() {
-		appState.IncreaseVolume()
-	})
-	player.AddItem("Play", "", 0, func() {
-		if appState.IsPlaying {
-			appState.PauseMusic()
-			player.SetItemText(1, "Play", "")
-		} else {
-			err := appState.PlayMusic()
-			if err != nil {
-				app.Stop()
-				log.Fatalf("%+v", err)
-			}
-			player.SetItemText(1, "Pause", "")
-		}
-	})
-	player.AddItem("Volume -", "", 0, func() {
-		appState.DecreaseVolume()
-	})
-
-	player.SetCurrentItem(1)
-	return player
-}
-
 func InitApp(appState *state.AppState) error {
 	app := tview.NewApplication()
 
 	channelDetails := getChannelDetails(appState)
-	player := getPlayer(appState, app)
-	channelList := getChannelList(appState, app, channelDetails, player)
-
-	channelList.SetSelectedFunc(func(_ int, _ string, _ string, _ rune) {
-		app.SetFocus(player)
-	})
-	player.SetDoneFunc(func() {
-		app.SetFocus(channelList)
-	})
+	channelList := getChannelList(appState, app, channelDetails)
 
 	flex := tview.NewFlex().
 		AddItem(channelList, 0, 1, false).
-		AddItem(player, 0, 1, false).
 		AddItem(channelDetails, 0, 1, false)
 	flexWithHeader := tview.NewFrame(flex).
 		SetBorders(2, 2, 2, 2, 4, 4).

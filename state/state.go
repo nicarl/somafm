@@ -8,9 +8,9 @@ import (
 type AppState struct {
 	Channels   []radioChannels.RadioChan
 	SelectedCh int
+	PlayingCh  int
 	IsPlaying  bool
 	done       chan bool
-	setVolume  chan float32
 }
 
 func (appState *AppState) SelectCh(i int) {
@@ -30,21 +30,17 @@ func (appState *AppState) PauseMusic() {
 
 func (appState *AppState) PlayMusic() error {
 	if appState.IsPlaying {
+		if appState.SelectedCh == appState.PlayingCh {
+			return nil
+		}
 		appState.PauseMusic()
 	}
 	errs := make(chan error, 1)
 	appState.IsPlaying = true
-	go audio.PlayMusic(appState.GetSelectedCh().StreamURL, appState.done, appState.setVolume, errs)
+	appState.PlayingCh = appState.SelectedCh
+	go audio.PlayMusic(appState.GetSelectedCh().StreamURL, appState.done, errs)
 
 	return <-errs
-}
-
-func (appState *AppState) IncreaseVolume() {
-	appState.setVolume <- 0.5
-}
-
-func (appState *AppState) DecreaseVolume() {
-	appState.setVolume <- -0.5
 }
 
 func InitState(channels []radioChannels.RadioChan) *AppState {
@@ -53,6 +49,5 @@ func InitState(channels []radioChannels.RadioChan) *AppState {
 		SelectedCh: 0,
 		IsPlaying:  false,
 		done:       make(chan bool),
-		setVolume:  make(chan float32, 10),
 	}
 }
