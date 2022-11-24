@@ -1,0 +1,20 @@
+builds:
+  - skip: true
+brews:
+  - name: somafm
+    homepage: "https://github.com/nicarl/somafm"
+    tap:
+      owner: nicarl
+      name: homebrew-somafm
+    commit_author:
+      name: Nico Carl
+      email: nicocarl@protonmail.com
+
+release:
+  prerelease: auto
+
+universal_binaries:
+  - replace: true
+
+checksum:
+  name_template: "checksums.txt"
