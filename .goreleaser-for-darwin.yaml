@@ -1,15 +1,11 @@
 builds:
   - main: ./cmd/
-  - binary: somafm
+    binary: somafm
     goos:
       - darwin
     goarch:
       - amd64
       - arm64
-    env:
-      - CGO_ENABLED=0
-    flags:
-      - -mod=vendor
 
 release:
   prerelease: auto
