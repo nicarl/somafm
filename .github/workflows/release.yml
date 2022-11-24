@@ -49,12 +49,12 @@ jobs:
           args: release --skip-publish --config .goreleaser-for-darwin.yaml
         env:
           GITHUB-TOKEN: ${{ secrets.HOMEBREW_PUBLISH_TOKEN }}
-     - name: Upload
-        uses: actions/upload-artifact@v3
-        with:
-          name: somafm-darwin
-          path: dist/somafm*
-    
+      - name: Upload
+          uses: actions/upload-artifact@v3
+          with:
+            name: somafm-darwin
+            path: dist/somafm*
+      
   release:
     needs: [build-linux-binary, build-darwin-binary]
     runs-on: ubuntu-latest
