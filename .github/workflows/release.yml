@@ -59,12 +59,15 @@ jobs:
           depends_on: |
             "go" => :build
 
-          install: 'cd "src/github.com/nicarl/somafm" do system "go", "build", "-o", bin/"somafm", "./cmd/somafm.go" end'
+          install: |
+            (buildpath/"src/github.com/nicarl/somafm").install buildpath.children
+            cd "src/github.com/nicarl/somafm" do
+              system "go", "build", "-o", bin/"somafm", "./cmd/somafm.go"
+            end
           update_readme_table: true
-
           # Skips committing the generated formula to a homebrew tap (useful for local testing).
           # Default is shown - boolean.
-          skip_commit: true
+          skip_commit: false
 
           # Logs debugging info to console.
           # Default is shown - boolean.
