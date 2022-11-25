@@ -12,9 +12,11 @@ brews:
 
 release:
   prerelease: auto
+  extra_files:
+    - glob: ./somafm-build/**/*
+    - glob: ./somafm-build/checksums.txt
 
 universal_binaries:
   - replace: true
-
 checksum:
   name_template: "checksums.txt"
