@@ -51,7 +51,7 @@ jobs:
         with:
           homebrew_owner: nicarl
           homebrew_tap: homebrew-somafm
-          formula_folder: formula
+          formula_folder: Formula
           github_token: ${{ secrets.HOMEBREW_PUBLISH_TOKEN }}
           commit_owner: nicarl
           commit_email: nicocarl@protonmail.com
@@ -61,9 +61,9 @@ jobs:
 
           install: |
             (buildpath/"src/github.com/nicarl/somafm").install buildpath.children
-            cd "src/github.com/nicarl/somafm" do
-              system "go", "build", "-o", bin/"somafm", "./cmd/somafm.go"
-            end
+                cd "src/github.com/nicarl/somafm" do
+                  system "go", "build", "-o", bin/"somafm", "./cmd/somafm.go"
+                end
           update_readme_table: true
           # Skips committing the generated formula to a homebrew tap (useful for local testing).
           # Default is shown - boolean.
