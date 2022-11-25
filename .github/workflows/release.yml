@@ -41,3 +41,31 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ matrix.file }}
+
+  homebrew-releaser:
+    runs-on: ubuntu-latest
+    name: homebrew-releaser
+    steps:
+      - name: Release to Homebrew tap
+        uses: Justintime50/homebrew-releaser@v1
+        with:
+          homebrew_owner: nicarl
+          homebrew_tap: homebrew-somafm
+          formula_folder: formula
+          github_token: ${{ secrets.HOMEBREW_PUBLISH_TOKEN }}
+          commit_owner: nicarl
+          commit_email: nicocarl@protonmail.com
+
+          depends_on: |
+            "go" => :build
+
+          install: 'cd "src/github.com/nicarl/somafm" do system "go", "build", "-o", bin/"somafm", "./cmd/somafm.go" end'
+          update_readme_table: true
+
+          # Skips committing the generated formula to a homebrew tap (useful for local testing).
+          # Default is shown - boolean.
+          skip_commit: true
+
+          # Logs debugging info to console.
+          # Default is shown - boolean.
+          debug: true
