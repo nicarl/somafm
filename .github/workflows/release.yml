@@ -82,7 +82,7 @@ jobs:
       - name: Merge checksum file
         run: |
           cd ./somafm-build
-          cat ./darwin/bytsomafmebase*checksums.txt >> checksums.txt
+          cat ./darwin/somafm*checksums.txt >> checksums.txt
           cat ./linux/somafm*checksums.txt >> checksums.txt
           rm ./darwin/somafm*checksums.txt
           rm ./linux/somafm*checksums.txt
