@@ -3,92 +3,69 @@ name: Release
 on:
   push:
     tags:
-      - "*"
-
-permissions:
-  contents: write
+      - "v*.*.*"
 
 jobs:
-  build-linux-binary:
-    runs-on: ubuntu-latest
+  release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            env: GOOS=linux GOARCH=amd64
+            file: somafm-${{ github.ref_name }}-linux-amd64
+          - os: macos-latest
+            file: somafm-${{ github.ref_name }}-darwin-amd64
+            env: GOOS=darwin GOARCH=amd64
+          - os: windows-latest
+            file: somafm-${{ github.ref_name }}-windows-amd64.exe
+            env: ""
+
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
           go-version: 1.19
           check-latest: true
           cache: true
+
       - name: Install dependencies
         run: sudo apt-get install libasound2-dev
-      - name: Build
-        uses: goreleaser/goreleaser-action@v2
+        if: matrix.os == 'ubuntu-latest'
+      - name: Build binary
+        run: ${{ matrix.env }} go build -o ${{ matrix.file }} ./cmd/somafm.go
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v1
         with:
-          args: release --skip-publish --config .goreleaser-for-linux.yaml
-        env:
-          GITHUB-TOKEN: ${{ secrets.HOMEBREW_PUBLISH_TOKEN }}
-      - name: Upload
-        uses: actions/upload-artifact@v3
-        with:
-          name: somafm-linux
-          path: dist/somafm*
+          files: ${{ matrix.file }}
 
-  build-darwin-binary:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: 1.19
-          check-latest: true
-          cache: true
-      - name: Build
-        uses: goreleaser/goreleaser-action@v2
-        with:
-          args: release --skip-publish --config .goreleaser-for-darwin.yaml
-        env:
-          GITHUB-TOKEN: ${{ secrets.HOMEBREW_PUBLISH_TOKEN }}
-      - name: Upload
-        uses: actions/upload-artifact@v3
-        with:
-          name: somafm-darwin
-          path: dist/somafm*
-
-  release:
-    needs: [build-linux-binary, build-darwin-binary]
+  homebrew-releaser:
     runs-on: ubuntu-latest
+    name: homebrew-releaser
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - name: Release to Homebrew tap
+        uses: Justintime50/homebrew-releaser@v1
         with:
-          go-version: 1.19
-          check-latest: true
-          cache: true
-      - name: Make directories
-        run: |
-          mkdir -p ./somafm-build/linux
-          mkdir -p ./somafm-build/darwin
-      - name: Download linux binaries
-        uses: actions/download-artifact@v3
-        with:
-          name: somafm-linux
-          path: ./somafm-build/linux
-      - name: Download darwin binaries
-        uses: actions/download-artifact@v3
-        with:
-          name: somafm-darwin
-          path: ./somafm-build/darwin
-      - name: Merge checksum file
-        run: |
-          cd ./somafm-build
-          cat ./darwin/somafm*checksums.txt >> checksums.txt
-          cat ./linux/somafm*checksums.txt >> checksums.txt
-          rm ./darwin/somafm*checksums.txt
-          rm ./linux/somafm*checksums.txt
-      - name: Release
-        uses: goreleaser/goreleaser-action@v3
-        with:
-          args: release --config .goreleaser-release.yaml
-        env:
-          GITHUB_TOKEN: ${{ secrets.HOMEBREW_PUBLISH_TOKEN }}
+          homebrew_owner: nicarl
+          homebrew_tap: homebrew-somafm
+          formula_folder: formula
+          github_token: ${{ secrets.HOMEBREW_PUBLISH_TOKEN }}
+          commit_owner: nicarl
+          commit_email: nicocarl@protonmail.com
+
+          depends_on: |
+            "go" => :build
+
+          install: 'cd "src/github.com/nicarl/somafm" do system "go", "build", "-o", bin/"somafm", "./cmd/somafm.go" end'
+          update_readme_table: true
+
+          # Skips committing the generated formula to a homebrew tap (useful for local testing).
+          # Default is shown - boolean.
+          skip_commit: true
+
+          # Logs debugging info to console.
+          # Default is shown - boolean.
+          debug: true
