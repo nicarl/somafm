@@ -92,30 +92,10 @@ jobs:
             "go" => :build
             "pkg-config" => :build
           install: |
+            if OS.linux?
+              ENV.prepend_path "PKG_CONFIG_PATH", "/usr/lib/x86_64-linux-gnu/pkgconfig"
+            end
             system "go", "build", "-o", bin/"somafm", "./cmd/somafm.go"
           update_readme_table: true
           skip_commit: false
           debug: false
-
-      - name: Add Linux-specific dependencies to formula
-        uses: actions/checkout@v4
-        with:
-          repository: nicarl/homebrew-somafm
-          token: ${{ secrets.HOMEBREW_PUBLISH_TOKEN }}
-          path: homebrew-tap
-
-      - name: Patch formula with on_linux block
-        run: |
-          cd homebrew-tap
-          if ! grep -q 'on_linux' Formula/somafm.rb; then
-            sed -i '/depends_on "pkg-config" => :build/a\\n  on_linux do\n    depends_on "alsa-lib"\n  end' Formula/somafm.rb
-          fi
-
-      - name: Commit and push patched formula
-        run: |
-          cd homebrew-tap
-          git config user.name "nicarl"
-          git config user.email "nicocarl@protonmail.com"
-          git add Formula/somafm.rb
-          git diff --cached --quiet || git commit -m "Add Linux ALSA dependency"
-          git push
