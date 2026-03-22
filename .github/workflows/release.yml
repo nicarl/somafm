@@ -2,29 +2,52 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*.*.*"
+    branches: ["main"]
+
+permissions:
+  contents: write
 
 jobs:
-  release:
+  semantic-release:
+    runs-on: ubuntu-latest
+    outputs:
+      new_release_version: ${{ steps.semantic.outputs.version }}
+      new_release_published: ${{ steps.semantic.outputs.version != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run go-semantic-release
+        id: semantic
+        uses: go-semantic-release/action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    needs: semantic-release
+    if: needs.semantic-release.outputs.new_release_published == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
-            env: GOOS=linux GOARCH=amd64
-            file: somafm-${{ github.ref_name }}-linux-amd64
+            goos: linux
+            goarch: amd64
+            suffix: ""
           - os: macos-latest
-            file: somafm-${{ github.ref_name }}-darwin-amd64
-            env: GOOS=darwin GOARCH=amd64
+            goos: darwin
+            goarch: amd64
+            suffix: ""
           - os: macos-latest
-            file: somafm-${{ github.ref_name }}-darwin-arm64
-            env: GOOS=darwin GOARCH=arm64
+            goos: darwin
+            goarch: arm64
+            suffix: ""
           - os: windows-latest
-            file: somafm-${{ github.ref_name }}-windows-amd64.exe
-            env: ""
-
+            goos: windows
+            goarch: amd64
+            suffix: ".exe"
     steps:
       - uses: actions/checkout@v4
 
@@ -36,16 +59,25 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install -y libasound2-dev
         if: matrix.os == 'ubuntu-latest'
+
       - name: Build binary
-        run: ${{ matrix.env }} go build -o ${{ matrix.file }} ./cmd/somafm.go
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: >
+          go build -o
+          somafm-v${{ needs.semantic-release.outputs.new_release_version }}-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }}
+          ./cmd/somafm.go
+
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ matrix.file }}
+          tag_name: v${{ needs.semantic-release.outputs.new_release_version }}
+          files: somafm-v${{ needs.semantic-release.outputs.new_release_version }}-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }}
 
   homebrew-releaser:
+    needs: build
     runs-on: ubuntu-latest
-    name: homebrew-releaser
     steps:
       - name: Release to Homebrew tap
         uses: Justintime50/homebrew-releaser@v1
@@ -56,10 +88,8 @@ jobs:
           github_token: ${{ secrets.HOMEBREW_PUBLISH_TOKEN }}
           commit_owner: nicarl
           commit_email: nicocarl@protonmail.com
-
           depends_on: |
             "go" => :build
-
           install: |
             system "go", "build", "-o", bin/"somafm", "./cmd/somafm.go"
           update_readme_table: true
