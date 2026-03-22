@@ -1,27 +1,15 @@
 package main
 
 import (
-	"log"
+	"fmt"
+	"os"
 
-	"github.com/nicarl/somafm/audio"
-	"github.com/nicarl/somafm/radioChannels"
-	"github.com/nicarl/somafm/state"
-	"github.com/nicarl/somafm/view"
+	"github.com/nicarl/somafm/tui"
 )
 
 func main() {
-	if err := audio.InitSpeaker(); err != nil {
-		log.Fatalf("%+v", err)
-	}
-
-	radioCh, err := radioChannels.GetChannels()
-	if err != nil {
-		log.Fatalf("%+v", err)
-	}
-	playerState := state.InitState(radioCh)
-
-	err = view.InitApp(playerState)
-	if err != nil {
-		log.Fatalf("%+v", err)
+	if err := tui.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
 }

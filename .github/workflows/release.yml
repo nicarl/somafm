@@ -18,27 +18,28 @@ jobs:
           - os: macos-latest
             file: somafm-${{ github.ref_name }}-darwin-amd64
             env: GOOS=darwin GOARCH=amd64
+          - os: macos-latest
+            file: somafm-${{ github.ref_name }}-darwin-arm64
+            env: GOOS=darwin GOARCH=arm64
           - os: windows-latest
             file: somafm-${{ github.ref_name }}-windows-amd64.exe
             env: ""
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.19
-          check-latest: true
-          cache: true
+          go-version: "1.24"
 
       - name: Install dependencies
-        run: sudo apt-get install libasound2-dev
+        run: sudo apt-get install -y libasound2-dev
         if: matrix.os == 'ubuntu-latest'
       - name: Build binary
         run: ${{ matrix.env }} go build -o ${{ matrix.file }} ./cmd/somafm.go
       - name: Upload release asset
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ${{ matrix.file }}
 
@@ -60,10 +61,7 @@ jobs:
             "go" => :build
 
           install: |
-            (buildpath/"src/github.com/nicarl/somafm").install buildpath.children
-                cd "src/github.com/nicarl/somafm" do
-                  system "go", "build", "-o", bin/"somafm", "./cmd/somafm.go"
-                end
+            system "go", "build", "-o", bin/"somafm", "./cmd/somafm.go"
           update_readme_table: true
           skip_commit: false
           debug: false
