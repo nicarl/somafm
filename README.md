@@ -4,6 +4,8 @@
 
 If you enjoy listening to [SomaFM](https://somafm.com/) please support SomaFM by donating.
 
+![somafm demo](docs/demo.gif)
+
 ## Features
 
 - Browse and play all SomaFM channels
